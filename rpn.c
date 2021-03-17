@@ -4,6 +4,7 @@
 int
 main(int argc, char **argv)
 {
+	int test;
 	/*
 	if (argc != 3) return -1;
 	switch (argv[1][1])

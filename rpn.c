@@ -38,14 +38,10 @@ main(int argc, char *argv[])
 }
 
 enum tok { OP, VAR };
-enum ops { ADD = '+', SUB = '-', MUL = '*', DIV = '/', LP = '(' };
 
-void error(char *msg, int i)
+void error(char *msg, int pos)
 {
-	fprintf(stderr, "%s\n%s\n", msg, str);
-	for (;i != 0; i--)
-		fputc(' ', stderr);
-	fputc('^', stderr);
+	fprintf(stderr, "%s\n%s\n%*c", msg, str, pos+1, '^');
 	exit(-1);
 }
 
@@ -58,6 +54,7 @@ infix_to_rpn()
 	int n_ops = 0;
 	int n_vars = 0;
 	int i = 0;
+	int last_i = 0;
 	enum tok last = OP;
 	
 	while (1)
@@ -77,10 +74,11 @@ infix_to_rpn()
 			
 			if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/')
 			{
-				if (last == OP) error("missing an operand", i);
+				last_i = i;
+				if (last == OP) error("missing an operand", last_i);
 				if (str[i] == '+' || str[i] == '-')
 				{
-					while (*spp != 0 && *stp != LP)
+					while (*spp != 0 && *stp != (int)'(')
 					{
 						*out = (char)pop();
 						out++;
@@ -91,7 +89,7 @@ infix_to_rpn()
 				}
 				else
 				{
-					while (*spp != 0 && (*stp == MUL || *stp == DIV))
+					while (*spp != 0 && (*stp == (int)'*' || *stp == (int)'/'))
 					{
 						*out = (char)pop();
 						out++;
@@ -106,7 +104,8 @@ infix_to_rpn()
 			}
 			else if (str[i] == ')')
 			{
-				while (*spp != 0 && *stp != LP)
+				if (last == OP) error("missing an operand", last_i);
+				while (*spp != 0 && *stp != (int)'(')
 				{
 					*out = (char)pop();
 					out++;
@@ -114,20 +113,22 @@ infix_to_rpn()
 					out++;
 				}
 				
-				if (*stp == LP)
+				if (*stp == (int)'(')
 					pop();
 				else
 					error("where's (", i);
 			}
 			else if (str[i] == '(')
 			{
-				push(LP);
+				last = OP;
+				push((int)str[i]);
 			}
 		}
 		else
 		/* any char but +*-/() \0 */
 		{
-			if (last == VAR) error("missing an operator", i);
+			if (reading_var == 0) last_i = i;
+			if (last == VAR) error("missing an operator", last_i);
 			reading_var = 1;
 			*out = str[i];
 			out++;
@@ -136,7 +137,7 @@ infix_to_rpn()
 		i++;
 	}
 	
-	while (*spp != 0 && *stp != LP)
+	while (*spp != 0 && *stp != (int)'(')
 	{
 		*out = (char)pop();
 		out++;
@@ -144,16 +145,10 @@ infix_to_rpn()
 		out++;
 	}
 	
-	if (*stp == LP) error("where's )", 0);
+	if (*stp == (int)'(') error("where's )", 0);
 	
-	if (n_ops < n_vars - 1)
-	{
-		error("too many vars", i);
-	}
-	else if (n_ops > n_vars - 1)
-	{
-		error("too many ops", i);
-	}
+	if (str[last_i] == '+' || str[last_i] == '-' || str[last_i] == '*' || str[last_i] == '/')
+		error("missing an operand", last_i);
 	
 	printf("%s\n", outstr);
 }

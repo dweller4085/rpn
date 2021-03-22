@@ -3,7 +3,8 @@
 
 struct node_st { struct node_st *prev; int val; };
 
-static struct node_st *sp = NULL;
+static struct node_st null_node = { &null_node, 0 };
+static struct node_st *sp = &null_node;
 static int isp = 0;
 static int st = 0;
 
@@ -24,7 +25,7 @@ push(int val)
 int
 pop(void)
 {
-	if (sp == NULL)
+	if (sp == &null_node)
 	{
 		return 0;
 	}
@@ -34,10 +35,7 @@ pop(void)
 		int val = sp->val;
 		free(sp);
 		sp = prev;
-		if (sp == NULL)
-			st = 0;
-		else
-			st = sp->val;
+		st = sp->val;
 		isp--;
 		return val;
 	}

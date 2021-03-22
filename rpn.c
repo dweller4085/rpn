@@ -37,35 +37,24 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-enum tok { OP, VAR };
-
-void error(char *msg, int pos)
-{
-	fprintf(stderr, "%s\n%s\n%*c", msg, str, pos+1, '^');
-	exit(-1);
-}
+enum staat_st { START, OP, VAR, READING_VAR, LB };
 
 void
 infix_to_rpn()
 {
 	char outstr[OUT_LEN] = { '\0' };
 	char *out = outstr;
-	int reading_var = 0;
-	int n_ops = 0;
-	int n_vars = 0;
 	int i = 0;
 	int last_i = 0;
-	enum tok last = OP;
+	enum staat_st last = START;
 	
 	while (1)
 	{
 		if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/' || str[i] == '(' || str[i] == ')' || str[i] == ' ' || str[i] == '\0')
 		{
-			if (reading_var == 1)
+			if (last == READING_VAR)
 			{
-				reading_var = 0;
 				last = VAR;
-				n_vars++;
 				*out = ' ';
 				out++;
 			}
@@ -75,7 +64,7 @@ infix_to_rpn()
 			if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/')
 			{
 				last_i = i;
-				if (last == OP) error("missing an operand", last_i);
+				if (last == OP || last == START || last == LB) error("missing an operand", last_i);
 				if (str[i] == '+' || str[i] == '-')
 				{
 					while (*spp != 0 && *stp != (int)'(')
@@ -100,7 +89,6 @@ infix_to_rpn()
 				}
 				
 				last = OP;
-				n_ops++;
 			}
 			else if (str[i] == ')')
 			{
@@ -120,16 +108,17 @@ infix_to_rpn()
 			}
 			else if (str[i] == '(')
 			{
-				last = OP;
+				if (last == VAR) error("missing an operand", last_i);
+				last = LB;
 				push((int)str[i]);
 			}
 		}
 		else
 		/* any char but +*-/() \0 */
 		{
-			if (reading_var == 0) last_i = i;
+			if (last != READING_VAR) last_i = i;
 			if (last == VAR) error("missing an operator", last_i);
-			reading_var = 1;
+			last = READING_VAR;
 			*out = str[i];
 			out++;
 		}
@@ -157,4 +146,10 @@ void
 rpn_compute()
 {
 	
+}
+
+void error(char *msg, int pos)
+{
+	fprintf(stderr, "%s\n%s\n%*c", msg, str, pos+1, '^');
+	exit(-1);
 }

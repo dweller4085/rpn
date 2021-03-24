@@ -3,12 +3,13 @@
 #include "sllstack.h"
 
 #define OUT_LEN 64
+#define MAX_DIGITS 16
 
 void infix_to_rpn(void);
 void rpn_compute(void);
 void error(char *, int);
 
-static const char * str;
+static const char *str;
 
 int
 main(int argc, char *argv[])
@@ -37,7 +38,7 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-enum staat_st { START, OP, VAR, READING_VAR, LB };
+enum state_et { START, OP, VAR, READING_VAR, LB };
 
 void
 infix_to_rpn()
@@ -46,7 +47,7 @@ infix_to_rpn()
 	char *out = outstr;
 	int i = 0;
 	int last_i = 0;
-	enum staat_st last = START;
+	enum state_et last = START;
 	
 	while (1)
 	{
@@ -116,8 +117,8 @@ infix_to_rpn()
 		else
 		/* any char but +*-/() \0 */
 		{
-			if (last != READING_VAR) last_i = i;
 			if (last == VAR) error("missing an operator", last_i);
+			if (last != READING_VAR) last_i = i;
 			last = READING_VAR;
 			*out = str[i];
 			out++;
@@ -145,7 +146,73 @@ infix_to_rpn()
 void
 rpn_compute()
 {
-	
+	int digit_buf[MAX_DIGITS] = { 0 };
+	int i_digit = 0;
+	int op2 = 0;
+	int ten = 1;
+	int number = 0;
+	int reading_num = 0;
+	int might_be_num = 0;
+	int sign = 1;
+	while (1)
+	{
+		if (*str == '+' || *str == '-' || *str == '*' || *str == '/' || *str == ' ' || *str == '\0')
+		{
+			if (reading_num == 1)
+			{
+				reading_num = 0;
+				ten = 1;
+				for (; i_digit > 0; i_digit--)
+				{
+					number += digit_buf[i_digit - 1] * ten;
+					ten *= 10;
+				}
+				if (might_be_num == 1)
+				{
+					might_be_num = 0;
+					number *= sign;
+				}
+				push(number);
+				number = 0;
+			}
+			
+			if (might_be_num == 1)
+			{
+				might_be_num = 0;
+				op2 = pop();
+				if (sign > 0) /* + */
+					push(pop() + op2);
+				else
+					push(pop() - op2);
+			}
+			
+			if (*str == '\0') { break; }
+			else if (*str == '+' || *str == '-')
+			{
+				might_be_num = 1;
+				if (*str == '+')
+					sign = 1;
+				else
+					sign = -1;
+			}
+			else if (*str == '*' || *str == '/')
+			{
+				op2 = pop();
+				if (*str == '*')
+					push(pop() * op2);
+				else
+					push(pop() / op2);
+			}
+		}
+		else if ((int)*str > 47 && (int)*str < 58) /* 0 .. 9 */
+		{
+			reading_num = 1;
+			digit_buf[i_digit] = (int)*str - 48;
+			i_digit++;
+		}
+		str++;
+	}
+	printf("%i\n", pop());
 }
 
 void error(char *msg, int pos)
@@ -153,3 +220,4 @@ void error(char *msg, int pos)
 	fprintf(stderr, "%s\n%s\n%*c", msg, str, pos+1, '^');
 	exit(-1);
 }
+

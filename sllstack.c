@@ -3,7 +3,7 @@
 
 struct node_st { struct node_st *prev; int val; };
 
-static struct node_st null_node = { &null_node, 0 };
+static struct node_st null_node = { NULL, 0 };
 static struct node_st *sp = &null_node;
 static int isp = 0;
 static int st = 0;

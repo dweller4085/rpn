@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-enum state_et { START, OP, VAR, READING_VAR, LB };
+enum token_et { START, OP, VAR, READING_VAR, LB, RB };
 
 void
 infix_to_rpn()
@@ -47,7 +47,7 @@ infix_to_rpn()
 	char *out = outstr;
 	int i = 0;
 	int last_i = 0;
-	enum state_et last = START;
+	enum token_et last = START;
 	
 	while (1)
 	{
@@ -94,6 +94,8 @@ infix_to_rpn()
 			else if (str[i] == ')')
 			{
 				if (last == OP) error("missing an operand", last_i);
+				if (last == LB) error("please do not put empty braces in your expression", i);
+				last = RB;
 				while (*spp != 0 && *stp != (int)'(')
 				{
 					*out = (char)pop();
@@ -117,7 +119,7 @@ infix_to_rpn()
 		else
 		/* any char but +*-/() \0 */
 		{
-			if (last == VAR) error("missing an operator", last_i);
+			if (last == VAR || last == RB) error("missing an operator", last_i);
 			if (last != READING_VAR) last_i = i;
 			last = READING_VAR;
 			*out = str[i];
@@ -210,6 +212,11 @@ rpn_compute()
 			digit_buf[i_digit] = (int)*str - 48;
 			i_digit++;
 		}
+		else
+		{
+			printf("%s", "can't calculate an expression with undefined vars");
+			break;
+		}
 		str++;
 	}
 	printf("%i\n", pop());
@@ -220,4 +227,3 @@ void error(char *msg, int pos)
 	fprintf(stderr, "%s\n%s\n%*c", msg, str, pos+1, '^');
 	exit(-1);
 }
-
